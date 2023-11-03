@@ -44,6 +44,7 @@ The NodeJS standard library has several operations that are called blocking oper
 **For you to do**:
 
 1. Explore the code in "operations/blocking.js" and "operations/nonblocking.js". For which code will the function moreWork() get executed. Why?
+    nonblocking.js, as it is not running readFileSync, which blocks till the file is read.
 
 One must be careful when writing concurrent scripts in Node.js. If actions performed in later stages are related to actions related in previous stages or vice-versa then the program will be in an error state. 
 For example, consider the code in "operations/syncdelete.js".
@@ -59,33 +60,56 @@ When *setTimeout(callback, ms)* invoked, Node puts a *callback* in the timer pha
 **For you to do**:
 
 1. In "eventloop/timer.js", what will be the order of execution?
+    in the first foo call:
+        console.log(foo)
+        baz()
+        console.log(foo)
+        baz()
+        bar()
+        bar()
 
 2. How many callbacks will the timers phase queue have after the script is run? 
+    2
 
 All I/O operations (e.g., read a file) run in the poll phase. The poll phase performs an I/O operation and puts all callbacks associated with the I/O operation in its queue. When the I/O operation completes, it executes the callbacks in the queue. 
 
 **For you to do**:
 1. In "eventloop/poll.js", which phase of the event loop will contain callback functions? What will they be?
+     The poll phase. They will contain the someAsyncOperation() function.
 2. What will be the execution order?
+    foo()
+    console.log('done')
+    someAsyncOperation()
 
 The poll phase is actually a blocking phase. If the callback queue associated with it is empty, it blocks the event loop till the earliest scheduled callback in the timers queue.
 
 **For you to do**:
 1. Run the script "eventloop/poll_timer.js". Explain the order of execution in terms of the messages you see in the console.
+    Since there is a timeout set it will be put in the queue to run after 100ms, but someAsyncOperation runs faster
 2. Change "Date.now() - startCallback < 10" in line 21 to "Date.now() - startCallback < 150". Will the order of execution change?
+    The order will not change
 3. Set timeout to 0. Will the order of execution change?
+    Yes
 
 **For you to do**:
 1. Run the script in "eventloop/immediate.js". What order of execution do you see in terms of the messages being logged.
+    callback
+    setImmediate
+    setTimeout
 2. Change the script such that the immediate callback runs first.
+
 
 The *process.nextTick()* API allows us to schedule tasks before the event loop.
 
 **For you to do**:
 1. Run the script "eventloop/tick_immediate.js". Explain the order of execution in terms of the messages logged.
-2. Run the script "eventloop/tick_immediate.js". Why doesn't setTimeout get executed? 
+    It logs first as it is immediate code, then nextTick runs as it runs immediately after the script runs, with purpose of running before setImmediate, then setImmediate runs
+2. Run the script "eventloop/starve.js". Why doesn't setTimeout get executed? 
+    because next tick runs right after the script runs, when the next tick runs it is setting the next timeout function to run, not running the timeout
 3. How does the output change if we replace process.nexTick(cb) with setImmediate(cb)?
+    it runs the setTimeout
 4. Why does the script "eventloop/eventemit.js" not log the event message? Change it such that the event message gets logged.
+
 
 
 ## Asynchronous Programming
@@ -97,17 +121,24 @@ The script logs 0.
 
 1. Change the script such that logs the sum of the elements in the list concatenated list.
 2. Does the code look unweildy to you?
+    yes
 
 ### Promise
 
 **For you to do**:
 
 1. Run the script in "asynchronous/promise.js". Explain the order of execution based on the logged messages.
+    All of the logs come before the actual output from the list because the Promise is executed BEFORE the next loop, i.e. after the first loop
 2. Change the value of i to 12. How does it change the promise's execution?
+    It doesnt change when it executes, but it changes the output
 3. Run the script in "asynchronous/promise1.js". Explain the order of execution based on the logged messages.
+    Similar to promise.js the first 3 logs are because they are not a part of resolving the promise, Kim comes from resolving the promise, after this we run the readfile as that is a part of the worker threads because it needs to finish reading before it can log
 4. Do promises run before or after process.nextTick()?
+    After
 5. Run the script in "asynchronous/promise2.js". Explain the order of execution based on the logged messages.
+    again, this is because the value of the list length is not called until the promise is resolved
 6. Discuss the implications of running a computationally expensive task in a promise.
+    We can hold off some of the less important parts until everything is done, but we also limit ourselves as they need to be resolved in order to get anything out of them
 
 Read more about Promises [here](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises#common_mistakes).
 

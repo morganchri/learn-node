@@ -6,6 +6,8 @@ const cb = () => {
 
 setTimeout(() => console.log('setTimeout executed'), 5);
 
-process.nextTick(cb);
+// process.nextTick(cb);
+
+setImmediate(() => cb);
 
 console.log('Start');
